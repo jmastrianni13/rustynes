@@ -79,8 +79,38 @@ impl CPU {
                     self.program_counter += 1;
                 }
                 // LDA end
-                0xaa => self.tax(),
-                0xe8 => self.inx(),
+                // STA start
+                0x85 => {
+                    self.sta(&AddressingMode::ZeroPage);
+                    self.program_counter += 1;
+                }
+                0x95 => {
+                    self.sta(&AddressingMode::ZeroPage_X);
+                    self.program_counter += 1;
+                }
+                0x8D => {
+                    self.sta(&AddressingMode::Absolute);
+                    self.program_counter += 2;
+                }
+                0x9D => {
+                    self.sta(&AddressingMode::Absolute_X);
+                    self.program_counter += 2;
+                }
+                0x99 => {
+                    self.sta(&AddressingMode::Absolute_Y);
+                    self.program_counter += 2;
+                }
+                0x81 => {
+                    self.sta(&AddressingMode::Indirect_X);
+                    self.program_counter += 1;
+                }
+                0x91 => {
+                    self.sta(&AddressingMode::Indirect_Y);
+                    self.program_counter += 1;
+                }
+                // STA end
+                0xAA => self.tax(),
+                0xE8 => self.inx(),
                 0x00 => return,
                 o => panic!("unsupported opscode: {}", o),
             }
@@ -133,6 +163,11 @@ impl CPU {
 
         self.register_a = value;
         self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    fn sta(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        self.mem_write(addr, self.register_a);
     }
 
     fn inx(&mut self) {
@@ -229,7 +264,29 @@ mod test {
     fn test_0xa9_lda_zero_flag() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0x00, 0x00]);
-        assert!(cpu.status & 0b0000_0010 == 2); // 2 == 0b10
+        assert!(cpu.status & 0b0000_0010 == 2); // 2 == 0x02
+    }
+
+    #[test]
+    fn test_0xaa_tax_move_a_to_x() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x0a, 0xaa, 0x00]);
+        assert_eq!(cpu.register_x, 10); // 10 == 0x0a
+    }
+
+    #[test]
+    fn test_5_ops_working_together() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0xc0, 0xaa, 0xe8, 0x00]);
+        assert_eq!(cpu.register_x, 0xc1); // 193 == 0xc1
+    }
+
+    #[test]
+    fn test_inx_overflow() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0xff, 0xaa, 0xe8, 0xe8, 0x00]);
+
+        assert_eq!(cpu.register_x, 1); // 1 == 0x01
     }
 
     #[test]
@@ -237,6 +294,6 @@ mod test {
         let mut cpu = CPU::new();
         cpu.mem_write(0x10, 0x55);
         cpu.load_and_run(vec![0xa5, 0x10, 0x00]);
-        assert_eq!(cpu.register_a, 0x55);
+        assert_eq!(cpu.register_a, 85); // 85 == 0x55
     }
 }
