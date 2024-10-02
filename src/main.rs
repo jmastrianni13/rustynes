@@ -45,6 +45,7 @@ impl CPU {
             self.program_counter += 1;
 
             match opscode {
+                // LDA start
                 0xA9 => {
                     self.lda(&AddressingMode::Immediate);
                     self.program_counter += 1;
@@ -77,6 +78,7 @@ impl CPU {
                     self.lda(&AddressingMode::Indirect_Y);
                     self.program_counter += 1;
                 }
+                // LDA end
                 0xaa => self.tax(),
                 0xe8 => self.inx(),
                 0x00 => return,
@@ -213,6 +215,22 @@ impl CPU {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_0xa9_lda_immediate_load_data() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x05, 0x00]);
+        assert_eq!(cpu.register_a, 5); // 5 == 0x05
+        assert!(cpu.status & 0b0000_0010 == 0);
+        assert!(cpu.status & 0b1000_0010 == 0);
+    }
+
+    #[test]
+    fn test_0xa9_lda_zero_flag() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x00, 0x00]);
+        assert!(cpu.status & 0b0000_0010 == 2); // 2 == 0b10
+    }
 
     #[test]
     fn test_lda_from_memory() {
