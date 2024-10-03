@@ -109,8 +109,8 @@ impl CPU {
                     self.program_counter += 1;
                 }
                 // STA end
-                0xAA => self.tax(),
-                0xE8 => self.inx(),
+                0xAA => self.tax(&AddressingMode::NonAddressing),
+                0xE8 => self.inx(&AddressingMode::NonAddressing),
                 0x00 => return,
                 o => panic!("unsupported opscode: {}", o),
             }
@@ -170,7 +170,7 @@ impl CPU {
         self.mem_write(addr, self.register_a);
     }
 
-    fn inx(&mut self) {
+    fn inx(&mut self, _mode: &AddressingMode) {
         if self.register_x == 255 {
             self.register_x = 0;
         } else {
@@ -179,7 +179,7 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_x);
     }
 
-    fn tax(&mut self) {
+    fn tax(&mut self, _mode: &AddressingMode) {
         self.register_x = self.register_a;
         self.update_zero_and_negative_flags(self.register_x);
     }
