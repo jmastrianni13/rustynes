@@ -385,10 +385,7 @@ impl CPU {
         todo!();
     }
 
-    fn brk(&mut self, _op_code: &OpCode) {
-        println!("BRK called");
-        return;
-    }
+    //fn brk(&mut self, _op_code: &OpCode) { no instructions to carry out
 
     fn bvc(&mut self, op_code: &OpCode) {
         todo!();
@@ -456,7 +453,12 @@ impl CPU {
     }
 
     fn iny(&mut self, op_code: &OpCode) {
-        todo!();
+        if self.register_y == 255 {
+            self.register_y = 0;
+        } else {
+            self.register_y += 1;
+        }
+        self.update_zero_and_negative_flags(self.register_y);
     }
 
     fn jmp(&mut self, op_code: &OpCode) {
@@ -481,11 +483,29 @@ impl CPU {
     }
 
     fn ldx(&mut self, op_code: &OpCode) {
-        todo!();
+        let addr = self.get_operand_address(&op_code.mode);
+        let value = self.mem_read(addr);
+
+        self.register_x = value;
+        self.update_zero_and_negative_flags(self.register_x);
+
+        match op_code.mode {
+            AddressingMode::NoneAddressing => (),
+            _ => self.update_program_counter(op_code.len),
+        }
     }
 
     fn ldy(&mut self, op_code: &OpCode) {
-        todo!();
+        let addr = self.get_operand_address(&op_code.mode);
+        let value = self.mem_read(addr);
+
+        self.register_y = value;
+        self.update_zero_and_negative_flags(self.register_y);
+
+        match op_code.mode {
+            AddressingMode::NoneAddressing => (),
+            _ => self.update_program_counter(op_code.len),
+        }
     }
 
     fn lsr(&mut self, op_code: &OpCode) {
@@ -549,6 +569,7 @@ impl CPU {
     }
 
     fn sta(&mut self, op_code: &OpCode) {
+        // TODO add test
         let addr = self.get_operand_address(&op_code.mode);
         self.mem_write(addr, self.register_a);
 
@@ -559,11 +580,25 @@ impl CPU {
     }
 
     fn stx(&mut self, op_code: &OpCode) {
-        todo!();
+        // TODO add test
+        let addr = self.get_operand_address(&op_code.mode);
+        self.mem_write(addr, self.register_x);
+
+        match op_code.mode {
+            AddressingMode::NoneAddressing => panic!(),
+            _ => self.update_program_counter(op_code.len),
+        }
     }
 
     fn sty(&mut self, op_code: &OpCode) {
-        todo!();
+        // TODO add test
+        let addr = self.get_operand_address(&op_code.mode);
+        self.mem_write(addr, self.register_y);
+
+        match op_code.mode {
+            AddressingMode::NoneAddressing => panic!(),
+            _ => self.update_program_counter(op_code.len),
+        }
     }
 
     fn tax(&mut self, _op_code: &OpCode) {
@@ -572,7 +607,8 @@ impl CPU {
     }
 
     fn tay(&mut self, op_code: &OpCode) {
-        todo!();
+        self.register_y = self.register_a;
+        self.update_zero_and_negative_flags(self.register_y);
     }
 
     fn tsx(&mut self, op_code: &OpCode) {
@@ -580,7 +616,8 @@ impl CPU {
     }
 
     fn txa(&mut self, op_code: &OpCode) {
-        todo!();
+        self.register_a = self.register_x;
+        self.update_zero_and_negative_flags(self.register_a);
     }
 
     fn txs(&mut self, op_code: &OpCode) {
@@ -588,7 +625,8 @@ impl CPU {
     }
 
     fn tya(&mut self, op_code: &OpCode) {
-        todo!();
+        self.register_a = self.register_y;
+        self.update_zero_and_negative_flags(self.register_a);
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
@@ -668,6 +706,24 @@ mod test {
     }
 
     #[test]
+    fn test_0xa2_ldx_immediate_load_data() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa2, 0x05, 0x00]);
+        assert_eq!(cpu.register_x, 5); // 5 == 0x05
+        assert!(cpu.status & 0b0000_0010 == 0);
+        assert!(cpu.status & 0b1000_0010 == 0);
+    }
+
+    #[test]
+    fn test_0xa0_lda_immediate_load_data() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa0, 0x05, 0x00]);
+        assert_eq!(cpu.register_y, 5); // 5 == 0x05
+        assert!(cpu.status & 0b0000_0010 == 0);
+        assert!(cpu.status & 0b1000_0010 == 0);
+    }
+
+    #[test]
     fn test_0xa9_lda_zero_flag() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0x00, 0x00]);
@@ -675,10 +731,45 @@ mod test {
     }
 
     #[test]
-    fn test_0xaa_tax_move_a_to_x() {
+    fn test_0xa2_ldx_zero_flag() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa2, 0x00, 0x00]);
+        assert!(cpu.status & 0b0000_0010 == 2); // 2 == 0x02
+    }
+
+    #[test]
+    fn test_0xa0_lda_zero_flag() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa0, 0x00, 0x00]);
+        assert!(cpu.status & 0b0000_0010 == 2); // 2 == 0x02
+    }
+
+    #[test]
+    fn test_0xaa_tax_copy_a_to_x() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0x0a, 0xaa, 0x00]);
         assert_eq!(cpu.register_x, 10); // 10 == 0x0a
+    }
+
+    #[test]
+    fn test_0xa8_tay_copy_a_to_y() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x0a, 0xa8, 0x00]);
+        assert_eq!(cpu.register_y, 10); // 10 == 0x0a
+    }
+
+    #[test]
+    fn test_0x8a_txa_copy_x_to_a() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa2, 0x0a, 0x8a, 0x00]);
+        assert_eq!(cpu.register_a, 10); // 10 == 0x0a
+    }
+
+    #[test]
+    fn test_0x98_tya_move_y_to_a() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa0, 0x0a, 0x98, 0x00]);
+        assert_eq!(cpu.register_a, 10); // 10 == 0x0a
     }
 
     #[test]
@@ -694,6 +785,14 @@ mod test {
         cpu.load_and_run(vec![0xa9, 0xff, 0xaa, 0xe8, 0xe8, 0x00]);
 
         assert_eq!(cpu.register_x, 1); // 1 == 0x01
+    }
+
+    #[test]
+    fn test_iny_overflow() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0xff, 0xa8, 0xc8, 0xc8, 0x00]);
+
+        assert_eq!(cpu.register_y, 1); // 1 == 0x01
     }
 
     #[test]
