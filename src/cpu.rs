@@ -553,11 +553,16 @@ impl CPU {
     }
 
     fn nop(&mut self, op_code: &OpCode) {
-        todo!();
+        //TODO: add tests
+        self.program_counter += 1;
     }
 
     fn ora(&mut self, op_code: &OpCode) {
-        todo!();
+        // TODO: add tests
+        let addr = self.get_operand_address(&op_code.mode);
+        let data = self.mem_read(addr);
+        self.register_a = self.register_a | data;
+        self.update_zero_and_negative_flags(self.register_a);
     }
 
     fn pha(&mut self, op_code: &OpCode) {
