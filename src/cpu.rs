@@ -350,7 +350,11 @@ impl CPU {
     }
 
     fn and(&mut self, op_code: &OpCode) {
-        todo!();
+        // TODO: add tests
+        let addr = self.get_operand_address(&op_code.mode);
+        let data = self.mem_read(addr);
+        self.register_a = self.register_a & data;
+        self.update_zero_and_negative_flags(self.register_a);
     }
 
     fn asl(&mut self, op_code: &OpCode) {
@@ -423,24 +427,60 @@ impl CPU {
         todo!();
     }
 
-    fn dec(&mut self, op_code: &OpCode) {
-        todo!();
+    fn dec(&mut self, op_code: &OpCode) -> u8 {
+        // TODO: add tests
+        let addr = self.get_operand_address(&op_code.mode);
+        let mut data = self.mem_read(addr);
+        if data == 0 {
+            data = 255;
+        } else {
+            data -= 1;
+        }
+        self.mem_write(addr, data);
+        self.update_zero_and_negative_flags(data);
+        return data;
     }
 
     fn dex(&mut self, op_code: &OpCode) {
-        todo!();
+        // TODO: add tests
+        if self.register_x == 0 {
+            self.register_x = 255;
+        } else {
+            self.register_x -= 1;
+        }
+        self.update_zero_and_negative_flags(self.register_x);
     }
 
     fn dey(&mut self, op_code: &OpCode) {
-        todo!();
+        // TODO: add tests
+        if self.register_y == 0 {
+            self.register_y = 255;
+        } else {
+            self.register_y -= 1;
+        }
+        self.update_zero_and_negative_flags(self.register_y);
     }
 
     fn eor(&mut self, op_code: &OpCode) {
-        todo!();
+        // TODO: add tests
+        let addr = self.get_operand_address(&op_code.mode);
+        let data = self.mem_read(addr);
+        self.register_a = self.register_a ^ data;
+        self.update_zero_and_negative_flags(self.register_a);
     }
 
-    fn inc(&mut self, op_code: &OpCode) {
-        todo!();
+    fn inc(&mut self, op_code: &OpCode) -> u8 {
+        // TODO: add tests
+        let addr = self.get_operand_address(&op_code.mode);
+        let mut data = self.mem_read(addr);
+        if data == 255 {
+            data = 0;
+        } else {
+            data += 1;
+        }
+        self.mem_write(addr, data);
+        self.update_zero_and_negative_flags(data);
+        return data;
     }
 
     fn inx(&mut self, _op_code: &OpCode) {
@@ -471,9 +511,9 @@ impl CPU {
 
     fn lda(&mut self, op_code: &OpCode) {
         let addr = self.get_operand_address(&op_code.mode);
-        let value = self.mem_read(addr);
+        let data = self.mem_read(addr);
 
-        self.register_a = value;
+        self.register_a = data;
         self.update_zero_and_negative_flags(self.register_a);
 
         match op_code.mode {
@@ -484,9 +524,9 @@ impl CPU {
 
     fn ldx(&mut self, op_code: &OpCode) {
         let addr = self.get_operand_address(&op_code.mode);
-        let value = self.mem_read(addr);
+        let data = self.mem_read(addr);
 
-        self.register_x = value;
+        self.register_x = data;
         self.update_zero_and_negative_flags(self.register_x);
 
         match op_code.mode {
@@ -497,9 +537,9 @@ impl CPU {
 
     fn ldy(&mut self, op_code: &OpCode) {
         let addr = self.get_operand_address(&op_code.mode);
-        let value = self.mem_read(addr);
+        let data = self.mem_read(addr);
 
-        self.register_y = value;
+        self.register_y = data;
         self.update_zero_and_negative_flags(self.register_y);
 
         match op_code.mode {
@@ -569,7 +609,7 @@ impl CPU {
     }
 
     fn sta(&mut self, op_code: &OpCode) {
-        // TODO add test
+        // TODO: add tests
         let addr = self.get_operand_address(&op_code.mode);
         self.mem_write(addr, self.register_a);
 
@@ -580,7 +620,7 @@ impl CPU {
     }
 
     fn stx(&mut self, op_code: &OpCode) {
-        // TODO add test
+        // TODO: add tests
         let addr = self.get_operand_address(&op_code.mode);
         self.mem_write(addr, self.register_x);
 
@@ -591,7 +631,7 @@ impl CPU {
     }
 
     fn sty(&mut self, op_code: &OpCode) {
-        // TODO add test
+        // TODO: add test
         let addr = self.get_operand_address(&op_code.mode);
         self.mem_write(addr, self.register_y);
 
@@ -715,7 +755,7 @@ mod test {
     }
 
     #[test]
-    fn test_0xa0_lda_immediate_load_data() {
+    fn test_0xa0_ldy_immediate_load_data() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa0, 0x05, 0x00]);
         assert_eq!(cpu.register_y, 5); // 5 == 0x05
@@ -738,7 +778,7 @@ mod test {
     }
 
     #[test]
-    fn test_0xa0_lda_zero_flag() {
+    fn test_0xa0_ldy_zero_flag() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa0, 0x00, 0x00]);
         assert!(cpu.status & 0b0000_0010 == 2); // 2 == 0x02
