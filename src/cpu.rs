@@ -71,7 +71,9 @@ impl CPU {
             let code = self.mem_read(self.program_counter);
             self.program_counter += 1;
 
-            let op_code = NMOS_6502_OPCODES_MAP.get(&code).unwrap(); // TODO: get rid of unwrap
+            let op_code = NMOS_6502_OPCODES_MAP
+                .get(&code)
+                .expect("code not recognized"); // TODO: get rid of unwrap
 
             match op_code.mnemonic {
                 "ADC" => {
@@ -244,77 +246,7 @@ impl CPU {
                 }
                 _ => panic!(),
             }
-
-            //match code {
-            //    // LDA start
-            //    0xA9 => {
-            //        self.lda(&AddressingMode::Immediate);
-            //        self.program_counter += 1;
-            //    }
-            //    0xA5 => {
-            //        self.lda(&AddressingMode::ZeroPage);
-            //        self.program_counter += 1;
-            //    }
-            //    0xB5 => {
-            //        self.lda(&AddressingMode::ZeroPage_X);
-            //        self.program_counter += 1;
-            //    }
-            //    0xAD => {
-            //        self.lda(&AddressingMode::Absolute);
-            //        self.program_counter += 2;
-            //    }
-            //    0xBD => {
-            //        self.lda(&AddressingMode::Absolute_X);
-            //        self.program_counter += 2;
-            //    }
-            //    0xB9 => {
-            //        self.lda(&AddressingMode::Absolute_Y);
-            //        self.program_counter += 2;
-            //    }
-            //    0xA1 => {
-            //        self.lda(&AddressingMode::Indirect_X);
-            //        self.program_counter += 1;
-            //    }
-            //    0xB1 => {
-            //        self.lda(&AddressingMode::Indirect_Y);
-            //        self.program_counter += 1;
-            //    }
-            //    // LDA end
-            //    // STA start
-            //    0x85 => {
-            //        self.sta(&AddressingMode::ZeroPage);
-            //        self.program_counter += 1;
-            //    }
-            //    0x95 => {
-            //        self.sta(&AddressingMode::ZeroPage_X);
-            //        self.program_counter += 1;
-            //    }
-            //    0x8D => {
-            //        self.sta(&AddressingMode::Absolute);
-            //        self.program_counter += 2;
-            //    }
-            //    0x9D => {
-            //        self.sta(&AddressingMode::Absolute_X);
-            //        self.program_counter += 2;
-            //    }
-            //    0x99 => {
-            //        self.sta(&AddressingMode::Absolute_Y);
-            //        self.program_counter += 2;
-            //    }
-            //    0x81 => {
-            //        self.sta(&AddressingMode::Indirect_X);
-            //        self.program_counter += 1;
-            //    }
-            //    0x91 => {
-            //        self.sta(&AddressingMode::Indirect_Y);
-            //        self.program_counter += 1;
-            //    }
-            //    // STA end
-            //    0xAA => self.tax(&AddressingMode::NoneAddressing),
-            //    0xE8 => self.inx(&AddressingMode::NoneAddressing),
-            //    0x00 => return,
-            //    o => panic!("unsupported opscode: {}", o),
-            //}
+            self.update_program_counter(op_code.len);
         }
     }
 
@@ -339,6 +271,7 @@ impl CPU {
 
     fn update_program_counter(&mut self, op_code_len: u8) {
         match op_code_len {
+            1 => self.program_counter += 0,
             2 => self.program_counter += 1,
             3 => self.program_counter += 2,
             _ => panic!(), // TODO: replace panic
@@ -350,7 +283,6 @@ impl CPU {
     }
 
     fn and(&mut self, op_code: &OpCode) {
-        // TODO: add tests
         let addr = self.get_operand_address(&op_code.mode);
         let data = self.mem_read(addr);
         self.register_a = self.register_a & data;
@@ -462,7 +394,6 @@ impl CPU {
     }
 
     fn eor(&mut self, op_code: &OpCode) {
-        // TODO: add tests
         let addr = self.get_operand_address(&op_code.mode);
         let data = self.mem_read(addr);
         self.register_a = self.register_a ^ data;
@@ -515,11 +446,6 @@ impl CPU {
 
         self.register_a = data;
         self.update_zero_and_negative_flags(self.register_a);
-
-        match op_code.mode {
-            AddressingMode::NoneAddressing => (),
-            _ => self.update_program_counter(op_code.len),
-        }
     }
 
     fn ldx(&mut self, op_code: &OpCode) {
@@ -528,11 +454,6 @@ impl CPU {
 
         self.register_x = data;
         self.update_zero_and_negative_flags(self.register_x);
-
-        match op_code.mode {
-            AddressingMode::NoneAddressing => (),
-            _ => self.update_program_counter(op_code.len),
-        }
     }
 
     fn ldy(&mut self, op_code: &OpCode) {
@@ -541,11 +462,6 @@ impl CPU {
 
         self.register_y = data;
         self.update_zero_and_negative_flags(self.register_y);
-
-        match op_code.mode {
-            AddressingMode::NoneAddressing => (),
-            _ => self.update_program_counter(op_code.len),
-        }
     }
 
     fn lsr(&mut self, op_code: &OpCode) {
@@ -558,7 +474,6 @@ impl CPU {
     }
 
     fn ora(&mut self, op_code: &OpCode) {
-        // TODO: add tests
         let addr = self.get_operand_address(&op_code.mode);
         let data = self.mem_read(addr);
         self.register_a = self.register_a | data;
@@ -617,33 +532,18 @@ impl CPU {
         // TODO: add tests
         let addr = self.get_operand_address(&op_code.mode);
         self.mem_write(addr, self.register_a);
-
-        match op_code.mode {
-            AddressingMode::NoneAddressing => panic!(),
-            _ => self.update_program_counter(op_code.len),
-        }
     }
 
     fn stx(&mut self, op_code: &OpCode) {
         // TODO: add tests
         let addr = self.get_operand_address(&op_code.mode);
         self.mem_write(addr, self.register_x);
-
-        match op_code.mode {
-            AddressingMode::NoneAddressing => panic!(),
-            _ => self.update_program_counter(op_code.len),
-        }
     }
 
     fn sty(&mut self, op_code: &OpCode) {
         // TODO: add test
         let addr = self.get_operand_address(&op_code.mode);
         self.mem_write(addr, self.register_y);
-
-        match op_code.mode {
-            AddressingMode::NoneAddressing => panic!(),
-            _ => self.update_program_counter(op_code.len),
-        }
     }
 
     fn tax(&mut self, _op_code: &OpCode) {
@@ -740,6 +640,30 @@ impl CPU {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_lda_and_immediate() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x05, 0x29, 0x04, 0x8D]);
+        assert_eq!(cpu.register_a, 0x04);
+        assert_eq!(cpu.memory[0], 0x04);
+    }
+
+    #[test]
+    fn test_lda_eor_immediate() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x05, 0x49, 0x04, 0x8D]);
+        assert_eq!(cpu.register_a, 0x01);
+        assert_eq!(cpu.memory[0], 0x01);
+    }
+
+    #[test]
+    fn test_lda_ora_immediate() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x05, 0x09, 0x10, 0x8D]);
+        assert_eq!(cpu.register_a, 0x15);
+        assert_eq!(cpu.memory[0], 0x15);
+    }
 
     #[test]
     fn test_0xa9_lda_immediate_load_data() {
