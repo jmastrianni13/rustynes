@@ -253,6 +253,7 @@ impl CPU {
     pub fn reset(&mut self) {
         self.register_a = 0;
         self.register_x = 0;
+        self.register_y = 0;
         self.status = 0;
 
         self.program_counter = self.mem_read_u16(0xFFFC)
@@ -830,5 +831,16 @@ mod test {
         cpu.load_and_run(vec![0xA0, 0x13, 0x84, 0x00]);
         assert_eq!(cpu.register_y, 0x13);
         assert_eq!(cpu.memory[0], 0x13);
+    }
+
+    #[test]
+    fn test_reset() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xA0, 0x13, 0x84, 0x00]);
+        cpu.reset();
+        assert_eq!(cpu.register_a, 0);
+        assert_eq!(cpu.register_x, 0);
+        assert_eq!(cpu.register_y, 0);
+        assert_eq!(cpu.program_counter, 32768);
     }
 }
