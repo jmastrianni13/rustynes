@@ -360,7 +360,6 @@ impl CPU {
     }
 
     fn dec(&mut self, op_code: &OpCode) -> u8 {
-        // TODO: add tests
         let addr = self.get_operand_address(&op_code.mode);
         let mut data = self.mem_read(addr);
         if data == 0 {
@@ -374,7 +373,6 @@ impl CPU {
     }
 
     fn dex(&mut self, op_code: &OpCode) {
-        // TODO: add tests
         if self.register_x == 0 {
             self.register_x = 255;
         } else {
@@ -384,7 +382,6 @@ impl CPU {
     }
 
     fn dey(&mut self, op_code: &OpCode) {
-        // TODO: add tests
         if self.register_y == 0 {
             self.register_y = 255;
         } else {
@@ -401,7 +398,6 @@ impl CPU {
     }
 
     fn inc(&mut self, op_code: &OpCode) -> u8 {
-        // TODO: add tests
         let addr = self.get_operand_address(&op_code.mode);
         let mut data = self.mem_read(addr);
         if data == 255 {
@@ -529,19 +525,16 @@ impl CPU {
     }
 
     fn sta(&mut self, op_code: &OpCode) {
-        // TODO: add tests
         let addr = self.get_operand_address(&op_code.mode);
         self.mem_write(addr, self.register_a);
     }
 
     fn stx(&mut self, op_code: &OpCode) {
-        // TODO: add tests
         let addr = self.get_operand_address(&op_code.mode);
         self.mem_write(addr, self.register_x);
     }
 
     fn sty(&mut self, op_code: &OpCode) {
-        // TODO: add test
         let addr = self.get_operand_address(&op_code.mode);
         self.mem_write(addr, self.register_y);
     }
@@ -642,9 +635,53 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_lda_sta_dec() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x05, 0x85, 0, 0xC6, 0]);
+        assert_eq!(cpu.register_a, 0x05);
+        assert_eq!(cpu.memory[0], 0x04);
+    }
+
+    #[test]
+    fn test_ldx_dex() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xA2, 0x04, 0xCA]);
+        assert_eq!(cpu.register_x, 0x03);
+    }
+
+    #[test]
+    fn test_ldy_dey() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xA0, 0x05, 0x88]);
+        assert_eq!(cpu.register_y, 0x04);
+    }
+
+    #[test]
+    fn test_lda_sta_inc() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x05, 0x85, 0, 0xE6, 0]);
+        assert_eq!(cpu.register_a, 0x05);
+        assert_eq!(cpu.memory[0], 0x06);
+    }
+
+    #[test]
+    fn test_ldx_inx() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xA2, 0x04, 0xE8]);
+        assert_eq!(cpu.register_x, 0x05);
+    }
+
+    #[test]
+    fn test_ldy_iny() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xA0, 0x04, 0xC8]);
+        assert_eq!(cpu.register_y, 0x05);
+    }
+
+    #[test]
     fn test_lda_and_immediate() {
         let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xa9, 0x05, 0x29, 0x04, 0x8D]);
+        cpu.load_and_run(vec![0xa9, 0x05, 0x29, 0x04, 0x8D, 0x00]);
         assert_eq!(cpu.register_a, 0x04);
         assert_eq!(cpu.memory[0], 0x04);
     }
@@ -652,17 +689,17 @@ mod test {
     #[test]
     fn test_lda_eor_immediate() {
         let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xa9, 0x05, 0x49, 0x04, 0x8D]);
+        cpu.load_and_run(vec![0xa9, 0x05, 0x49, 0x04, 0x8D, 0x01]);
         assert_eq!(cpu.register_a, 0x01);
-        assert_eq!(cpu.memory[0], 0x01);
+        assert_eq!(cpu.memory[1], 0x01);
     }
 
     #[test]
     fn test_lda_ora_immediate() {
         let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xa9, 0x05, 0x09, 0x10, 0x8D]);
+        cpu.load_and_run(vec![0xa9, 0x05, 0x09, 0x10, 0x8D, 0x02]);
         assert_eq!(cpu.register_a, 0x15);
-        assert_eq!(cpu.memory[0], 0x15);
+        assert_eq!(cpu.memory[2], 0x15);
     }
 
     #[test]
@@ -770,5 +807,28 @@ mod test {
         cpu.mem_write(0x10, 0x55);
         cpu.load_and_run(vec![0xa5, 0x10, 0x00]);
         assert_eq!(cpu.register_a, 85); // 85 == 0x55
+    }
+
+    #[test]
+    fn test_lda_sta_zeropage() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xA9, 0x11, 0x85, 0x00]);
+        assert_eq!(cpu.memory[0], 0x11);
+    }
+
+    #[test]
+    fn test_ldx_stx_zeropage() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xA2, 0x12, 0x86, 0x00]);
+        assert_eq!(cpu.register_x, 0x12);
+        assert_eq!(cpu.memory[0], 0x12);
+    }
+
+    #[test]
+    fn test_ldy_sty_zeropage() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xA0, 0x13, 0x84, 0x00]);
+        assert_eq!(cpu.register_y, 0x13);
+        assert_eq!(cpu.memory[0], 0x13);
     }
 }
