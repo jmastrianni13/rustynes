@@ -256,7 +256,7 @@ impl CPU {
         self.register_y = 0;
         self.status = 0;
 
-        self.program_counter = self.mem_read_u16(0xFFFC)
+        self.program_counter = self.mem_read_u16(0xFFFC);
     }
 
     pub fn load_and_run(&mut self, program: Vec<u8>) {
@@ -465,10 +465,7 @@ impl CPU {
         todo!();
     }
 
-    fn nop(&mut self, op_code: &OpCode) {
-        //TODO: add tests
-        self.program_counter += 1;
-    }
+    fn nop(&mut self, op_code: &OpCode) {}
 
     fn ora(&mut self, op_code: &OpCode) {
         let addr = self.get_operand_address(&op_code.mode);
@@ -831,6 +828,15 @@ mod test {
         cpu.load_and_run(vec![0xA0, 0x13, 0x84, 0x00]);
         assert_eq!(cpu.register_y, 0x13);
         assert_eq!(cpu.memory[0], 0x13);
+    }
+
+    #[test]
+    fn test_nop() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![]);
+        let pc = cpu.program_counter; // u16 primitives are copied, not moved
+        cpu.load_and_run(vec![0xEA, 0xEA, 0xEA]);
+        assert_eq!(cpu.program_counter, pc + 3);
     }
 
     #[test]
