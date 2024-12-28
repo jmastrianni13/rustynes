@@ -17,76 +17,86 @@ use crate::op_codes::{OpCode, NMOS_6502_OPCODES_MAP};
 
 #[derive(Debug)]
 pub struct Processor {
-    carry: u8,
-    zero: u8,
-    interrupt: u8,
-    decimal: u8,
-    b: u8,
-    _1: u8,
-    overflow: u8,
-    negative: u8,
+    flags: u8,
 }
 
 impl Processor {
     fn new() -> Self {
-        return Self {
-            carry: 0,
-            zero: 0,
-            interrupt: 0,
-            decimal: 0,
-            b: 1,
-            _1: 1,
-            overflow: 0,
-            negative: 0,
-        };
+        let flags = 0b0011_0000;
+
+        return Self { flags };
+    }
+
+    fn carry(&self) -> u8 {
+        return self.flags >> 0 & 1;
+    }
+
+    fn zero(&self) -> u8 {
+        return self.flags >> 1 & 1;
+    }
+
+    fn interrupt(&self) -> u8 {
+        return self.flags >> 2 & 1;
+    }
+
+    fn decimal(&self) -> u8 {
+        return self.flags >> 3 & 1;
+    }
+
+    fn overflow(&self) -> u8 {
+        return self.flags >> 6 & 1;
+    }
+
+    fn negative(&self) -> u8 {
+        return self.flags >> 7 & 1;
     }
 
     fn set_carry(&mut self) {
-        self.carry = 1;
+        self.flags = self.flags | 0b0000_0001;
     }
 
     fn set_zero(&mut self) {
-        self.zero = 1;
+        self.flags = self.flags | 0b0000_0010;
     }
 
     fn set_interrupt(&mut self) {
-        self.interrupt = 1;
+        self.flags = self.flags | 0b0000_0100;
     }
 
     fn set_decimal(&mut self) {
-        self.decimal = 1;
+        self.flags = self.flags | 0b0000_1000;
     }
 
     fn set_overflow(&mut self) {
-        self.overflow = 1;
+        self.flags = self.flags | 0b0100_0000;
     }
 
     fn set_negative(&mut self) {
-        self.negative = 1;
+        self.flags = self.flags | 0b1000_0000;
     }
 
     fn clear_carry(&mut self) {
-        self.carry = 0;
+        self.flags = self.flags & 0b1111_1110;
     }
 
     fn clear_zero(&mut self) {
-        self.zero = 0;
+        self.flags = self.flags & 0b1111_1101;
     }
 
     fn clear_interrupt(&mut self) {
-        self.interrupt = 0;
+        self.flags = self.flags & 0b1111_1011;
     }
 
     fn clear_decimal(&mut self) {
-        self.decimal = 0;
+        self.flags = self.flags & 0b1111_0111;
     }
 
     fn clear_overflow(&mut self) {
-        self.overflow = 0;
+        self.flags = self.flags & 0b1011_1111;
     }
 
     fn clear_negative(&mut self) {
-        self.negative = 0;
+        self.flags = self.flags & 0b0111_1111;
     }
 }
 
@@ -824,8 +834,8 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0x05, 0x00]);
         assert_eq!(cpu.register_a, 5); // 5 == 0x05
-        assert!(cpu.status.zero == 0);
-        assert!(cpu.status.negative == 0);
+        assert!(cpu.status.zero() == 0);
+        assert!(cpu.status.negative() == 0);
     }
 
     #[test]
@@ -833,8 +843,8 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa2, 0x05, 0x00]);
         assert_eq!(cpu.register_x, 5); // 5 == 0x05
-        assert!(cpu.status.zero == 0);
-        assert!(cpu.status.negative == 0);
+        assert!(cpu.status.zero() == 0);
+        assert!(cpu.status.negative() == 0);
     }
 
     #[test]
@@ -842,29 +852,29 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa0, 0x05, 0x00]);
         assert_eq!(cpu.register_y, 5); // 5 == 0x05
-        assert!(cpu.status.zero == 0);
-        assert!(cpu.status.negative == 0);
+        assert!(cpu.status.zero() == 0);
+        assert!(cpu.status.negative() == 0);
     }
 
     #[test]
     fn test_0xa9_lda_zero_flag() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0x00, 0x00]);
-        assert!(cpu.status.zero == 1); // 2 == 0x02
+        assert!(cpu.status.zero() == 1); // 2 == 0x02
     }
 
     #[test]
     fn test_0xa2_ldx_zero_flag() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa2, 0x00, 0x00]);
-        assert!(cpu.status.zero == 1); // 2 == 0x02
+        assert!(cpu.status.zero() == 1); // 2 == 0x02
     }
 
     #[test]
     fn test_0xa0_ldy_zero_flag() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa0, 0x00, 0x00]);
-        assert!(cpu.status.zero == 1); // 2 == 0x02
+        assert!(cpu.status.zero() == 1); // 2 == 0x02
     }
 
     #[test]
