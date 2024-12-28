@@ -617,15 +617,15 @@ impl CPU {
     }
 
     fn sec(&mut self, op_code: &OpCode) {
-        todo!();
+        self.status.set_carry();
     }
 
     fn sed(&mut self, op_code: &OpCode) {
-        todo!();
+        self.status.set_decimal();
     }
 
     fn sei(&mut self, op_code: &OpCode) {
-        todo!();
+        self.status.set_interrupt();
     }
 
     fn sta(&mut self, op_code: &OpCode) {
