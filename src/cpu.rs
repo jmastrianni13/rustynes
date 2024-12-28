@@ -422,19 +422,19 @@ impl CPU {
     }
 
     fn clc(&mut self, op_code: &OpCode) {
-        todo!();
+        self.status.clear_carry();
     }
 
     fn cld(&mut self, op_code: &OpCode) {
-        todo!();
+        self.status.clear_decimal();
     }
 
     fn cli(&mut self, op_code: &OpCode) {
-        todo!();
+        self.status.clear_interrupt();
     }
 
     fn clv(&mut self, op_code: &OpCode) {
-        todo!();
+        self.status.clear_overflow();
     }
 
     fn cmp(&mut self, op_code: &OpCode) {
