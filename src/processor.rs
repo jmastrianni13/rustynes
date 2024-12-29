@@ -98,3 +98,161 @@ impl Processor {
         self.flags = self.flags & 0b0111_1111;
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_new_processor() {
+        let processor = Processor::new();
+        assert_eq!(processor.flags, 0b0011_0000);
+    }
+
+    #[test]
+    fn test_set_carry() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.carry(), 0);
+        processor.set_carry();
+        assert_eq!(processor.carry(), 1);
+    }
+
+    #[test]
+    fn test_set_zero() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.zero(), 0);
+        processor.set_zero();
+        assert_eq!(processor.zero(), 1);
+    }
+
+    #[test]
+    fn test_set_interrupt() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.interrupt(), 0);
+        processor.set_interrupt();
+        assert_eq!(processor.interrupt(), 1);
+    }
+
+    #[test]
+    fn test_set_decimal() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.decimal(), 0);
+        processor.set_decimal();
+        assert_eq!(processor.decimal(), 1);
+    }
+
+    #[test]
+    fn test_set_overflow() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.overflow(), 0);
+        processor.set_overflow();
+        assert_eq!(processor.overflow(), 1);
+    }
+
+    #[test]
+    fn test_set_negative() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.negative(), 0);
+        processor.set_negative();
+        assert_eq!(processor.negative(), 1);
+    }
+
+    #[test]
+    fn test_clear_carry() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.carry(), 0);
+        processor.set_carry();
+        assert_eq!(processor.carry(), 1);
+        processor.clear_carry();
+        assert_eq!(processor.carry(), 0);
+    }
+
+    #[test]
+    fn test_clear_zero() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.zero(), 0);
+        processor.set_zero();
+        assert_eq!(processor.zero(), 1);
+        processor.clear_zero();
+        assert_eq!(processor.zero(), 0);
+    }
+
+    #[test]
+    fn test_clear_interrupt() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.interrupt(), 0);
+        processor.set_interrupt();
+        assert_eq!(processor.interrupt(), 1);
+        processor.clear_interrupt();
+        assert_eq!(processor.interrupt(), 0);
+    }
+
+    #[test]
+    fn test_clear_decimal() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.decimal(), 0);
+        processor.set_decimal();
+        assert_eq!(processor.decimal(), 1);
+        processor.clear_decimal();
+        assert_eq!(processor.decimal(), 0);
+    }
+
+    #[test]
+    fn test_clear_overflow() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.overflow(), 0);
+        processor.set_overflow();
+        assert_eq!(processor.overflow(), 1);
+        processor.clear_overflow();
+        assert_eq!(processor.overflow(), 0);
+    }
+
+    #[test]
+    fn test_clear_negative() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.negative(), 0);
+        processor.set_negative();
+        assert_eq!(processor.negative(), 1);
+        processor.clear_negative();
+        assert_eq!(processor.negative(), 0);
+    }
+
+    #[test]
+    fn test_clear_set_flags() {
+        let mut processor = Processor::new();
+        assert_eq!(processor.carry(), 0);
+        assert_eq!(processor.zero(), 0);
+        assert_eq!(processor.interrupt(), 0);
+        assert_eq!(processor.decimal(), 0);
+        assert_eq!(processor.overflow(), 0);
+        assert_eq!(processor.negative(), 0);
+
+        processor.set_carry();
+        processor.set_zero();
+        processor.set_interrupt();
+        processor.set_decimal();
+        processor.set_overflow();
+        processor.set_negative();
+
+        assert_eq!(processor.carry(), 1);
+        assert_eq!(processor.zero(), 1);
+        assert_eq!(processor.interrupt(), 1);
+        assert_eq!(processor.decimal(), 1);
+        assert_eq!(processor.overflow(), 1);
+        assert_eq!(processor.negative(), 1);
+
+        processor.clear_carry();
+        processor.clear_zero();
+        processor.clear_interrupt();
+        processor.clear_decimal();
+        processor.clear_overflow();
+        processor.clear_negative();
+
+        assert_eq!(processor.carry(), 0);
+        assert_eq!(processor.zero(), 0);
+        assert_eq!(processor.interrupt(), 0);
+        assert_eq!(processor.decimal(), 0);
+        assert_eq!(processor.overflow(), 0);
+        assert_eq!(processor.negative(), 0);
+    }
+}
