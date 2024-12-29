@@ -121,16 +121,16 @@ impl CPU {
                     self.bvs(&op_code);
                 }
                 "CLC" => {
-                    self.clc(&op_code);
+                    self.clc();
                 }
                 "CLD" => {
-                    self.cld(&op_code);
+                    self.cld();
                 }
                 "CLI" => {
-                    self.cli(&op_code);
+                    self.cli();
                 }
                 "CLV" => {
-                    self.clv(&op_code);
+                    self.clv();
                 }
                 "CMP" => {
                     self.cmp(&op_code);
@@ -145,10 +145,10 @@ impl CPU {
                     self.dec(&op_code);
                 }
                 "DEX" => {
-                    self.dex(&op_code);
+                    self.dex();
                 }
                 "DEY" => {
-                    self.dey(&op_code);
+                    self.dey();
                 }
                 "EOR" => {
                     self.eor(&op_code);
@@ -157,10 +157,10 @@ impl CPU {
                     self.inc(&op_code);
                 }
                 "INX" => {
-                    self.inx(&op_code);
+                    self.inx();
                 }
                 "INY" => {
-                    self.iny(&op_code);
+                    self.iny();
                 }
                 "JMP" => {
                     self.jmp(&op_code);
@@ -181,22 +181,22 @@ impl CPU {
                     self.lsr(&op_code);
                 }
                 "NOP" => {
-                    self.nop(&op_code);
+                    self.nop();
                 }
                 "ORA" => {
                     self.ora(&op_code);
                 }
                 "PHA" => {
-                    self.pha(&op_code);
+                    self.pha();
                 }
                 "PHP" => {
-                    self.php(&op_code);
+                    self.php();
                 }
                 "PLA" => {
-                    self.pla(&op_code);
+                    self.pla();
                 }
                 "PLP" => {
-                    self.plp(&op_code);
+                    self.plp();
                 }
                 "ROL" => {
                     self.rol(&op_code);
@@ -205,22 +205,22 @@ impl CPU {
                     self.ror(&op_code);
                 }
                 "RTI" => {
-                    self.rti(&op_code);
+                    self.rti();
                 }
                 "RTS" => {
-                    self.rts(&op_code);
+                    self.rts();
                 }
                 "SBC" => {
                     self.sbc(&op_code);
                 }
                 "SEC" => {
-                    self.sec(&op_code);
+                    self.sec();
                 }
                 "SED" => {
-                    self.sed(&op_code);
+                    self.sed();
                 }
                 "SEI" => {
-                    self.sei(&op_code);
+                    self.sei();
                 }
                 "STA" => {
                     self.sta(&op_code);
@@ -232,22 +232,22 @@ impl CPU {
                     self.sty(&op_code);
                 }
                 "TAX" => {
-                    self.tax(&op_code);
+                    self.tax();
                 }
                 "TAY" => {
-                    self.tay(&op_code);
+                    self.tay();
                 }
                 "TSX" => {
-                    self.tsx(&op_code);
+                    self.tsx();
                 }
                 "TXA" => {
-                    self.txa(&op_code);
+                    self.txa();
                 }
                 "TXS" => {
-                    self.txs(&op_code);
+                    self.txs();
                 }
                 "TYA" => {
-                    self.tya(&op_code);
+                    self.tya();
                 }
                 _ => panic!(),
             }
@@ -332,19 +332,19 @@ impl CPU {
         todo!();
     }
 
-    fn clc(&mut self, op_code: &OpCode) {
+    fn clc(&mut self) {
         self.status.clear_carry();
     }
 
-    fn cld(&mut self, op_code: &OpCode) {
+    fn cld(&mut self) {
         self.status.clear_decimal();
     }
 
-    fn cli(&mut self, op_code: &OpCode) {
+    fn cli(&mut self) {
         self.status.clear_interrupt();
     }
 
-    fn clv(&mut self, op_code: &OpCode) {
+    fn clv(&mut self) {
         self.status.clear_overflow();
     }
 
@@ -373,7 +373,7 @@ impl CPU {
         return data;
     }
 
-    fn dex(&mut self, op_code: &OpCode) {
+    fn dex(&mut self) {
         if self.register_x == 0 {
             self.register_x = 255;
         } else {
@@ -382,7 +382,7 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_x);
     }
 
-    fn dey(&mut self, op_code: &OpCode) {
+    fn dey(&mut self) {
         if self.register_y == 0 {
             self.register_y = 255;
         } else {
@@ -411,7 +411,7 @@ impl CPU {
         return data;
     }
 
-    fn inx(&mut self, _op_code: &OpCode) {
+    fn inx(&mut self) {
         if self.register_x == 255 {
             self.register_x = 0;
         } else {
@@ -420,7 +420,7 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_x);
     }
 
-    fn iny(&mut self, op_code: &OpCode) {
+    fn iny(&mut self) {
         if self.register_y == 255 {
             self.register_y = 0;
         } else {
@@ -482,7 +482,7 @@ impl CPU {
         todo!();
     }
 
-    fn nop(&mut self, op_code: &OpCode) {}
+    fn nop(&mut self) {}
 
     fn ora(&mut self, op_code: &OpCode) {
         let addr = self.get_operand_address(&op_code.mode);
@@ -491,19 +491,19 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_a);
     }
 
-    fn pha(&mut self, op_code: &OpCode) {
+    fn pha(&mut self) {
         todo!();
     }
 
-    fn php(&mut self, op_code: &OpCode) {
+    fn php(&mut self) {
         todo!();
     }
 
-    fn pla(&mut self, op_code: &OpCode) {
+    fn pla(&mut self) {
         todo!();
     }
 
-    fn plp(&mut self, op_code: &OpCode) {
+    fn plp(&mut self) {
         todo!();
     }
 
@@ -515,11 +515,11 @@ impl CPU {
         todo!();
     }
 
-    fn rti(&mut self, op_code: &OpCode) {
+    fn rti(&mut self) {
         todo!();
     }
 
-    fn rts(&mut self, op_code: &OpCode) {
+    fn rts(&mut self) {
         todo!();
     }
 
@@ -527,15 +527,15 @@ impl CPU {
         todo!();
     }
 
-    fn sec(&mut self, op_code: &OpCode) {
+    fn sec(&mut self) {
         self.status.set_carry();
     }
 
-    fn sed(&mut self, op_code: &OpCode) {
+    fn sed(&mut self) {
         self.status.set_decimal();
     }
 
-    fn sei(&mut self, op_code: &OpCode) {
+    fn sei(&mut self) {
         self.status.set_interrupt();
     }
 
@@ -554,30 +554,30 @@ impl CPU {
         self.mem_write(addr, self.register_y);
     }
 
-    fn tax(&mut self, _op_code: &OpCode) {
+    fn tax(&mut self) {
         self.register_x = self.register_a;
         self.update_zero_and_negative_flags(self.register_x);
     }
 
-    fn tay(&mut self, op_code: &OpCode) {
+    fn tay(&mut self) {
         self.register_y = self.register_a;
         self.update_zero_and_negative_flags(self.register_y);
     }
 
-    fn tsx(&mut self, op_code: &OpCode) {
+    fn tsx(&mut self) {
         todo!();
     }
 
-    fn txa(&mut self, op_code: &OpCode) {
+    fn txa(&mut self) {
         self.register_a = self.register_x;
         self.update_zero_and_negative_flags(self.register_a);
     }
 
-    fn txs(&mut self, op_code: &OpCode) {
+    fn txs(&mut self) {
         todo!();
     }
 
-    fn tya(&mut self, op_code: &OpCode) {
+    fn tya(&mut self) {
         self.register_a = self.register_y;
         self.update_zero_and_negative_flags(self.register_a);
     }
