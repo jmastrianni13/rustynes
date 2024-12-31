@@ -1,5 +1,10 @@
 use crate::op_codes::{OpCode, NMOS_6502_OPCODES_MAP};
 use crate::processor::Processor;
+use crate::stack::Stack;
+
+const STACK_BOTTOM: u16 = 0x01FF;
+const STACK_TOP: u16 = 0x0100;
+const STACK_RESET: u8 = STACK_BOTTOM as u8;
 
 #[derive(Debug)]
 #[allow(non_camel_case_types)]
@@ -55,18 +60,21 @@ pub struct CPU {
     pub register_y: u8,
     pub status: Processor,
     pub program_counter: u16,
+    pub stack: Stack,
     memory: [u8; 0xFFFF],
 }
 
 impl CPU {
     pub fn new() -> Self {
         let status = Processor::new();
+        let stack = Stack::new(STACK_BOTTOM, STACK_TOP);
         CPU {
             register_a: 0,
             register_x: 0,
             register_y: 0,
             status,
             program_counter: 0,
+            stack,
             memory: [0; 0xFFFF],
         }
     }
