@@ -11,7 +11,7 @@ impl Stack {
         return Self { bottom, top, _ptr };
     }
 
-    fn ptr(&self) -> u16 {
+    pub fn ptr(&self) -> u16 {
         return self._ptr.into();
     }
 
@@ -23,6 +23,10 @@ impl Stack {
     pub fn incr_ptr(&mut self) {
         // stack grows downward
         self._ptr = self._ptr.wrapping_sub(1);
+    }
+
+    pub fn set_ptr(&mut self, value: u8) {
+        self._ptr = value;
     }
 }
 

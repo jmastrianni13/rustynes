@@ -259,7 +259,7 @@ impl CPU {
                 }
                 _ => panic!(),
             }
-            self.update_program_counter(op_code.len);
+            self.advance_program_counter(op_code.len);
         }
     }
 
@@ -283,7 +283,7 @@ impl CPU {
         self.mem_write_u16(0xFFFC, 0x8000);
     }
 
-    fn update_program_counter(&mut self, op_code_len: u8) {
+    fn advance_program_counter(&mut self, op_code_len: u8) {
         self.program_counter += (op_code_len - 1) as u16;
     }
 
@@ -357,15 +357,49 @@ impl CPU {
     }
 
     fn cmp(&mut self, op_code: &OpCode) {
-        todo!();
+        let addr = self.get_operand_address(&op_code.mode);
+        let data = self.mem_read(addr);
+        let register_data = self.register_a;
+
+        if register_data >= data {
+            self.status.set_carry();
+        } else if register_data == data {
+            self.status.set_zero();
+        }
+
+        if ((register_data - data) >> 1 & 1) == 1 {
+            self.status.set_negative();
+        }
     }
 
     fn cpx(&mut self, op_code: &OpCode) {
-        todo!();
+        let addr = self.get_operand_address(&op_code.mode);
+        let data = self.mem_read(addr);
+
+        if self.register_x >= data {
+            self.status.set_carry();
+        } else if self.register_x == data {
+            self.status.set_zero();
+        }
+
+        if ((self.register_x - data) >> 7 & 1) == 1 {
+            self.status.set_negative();
+        }
     }
 
     fn cpy(&mut self, op_code: &OpCode) {
-        todo!();
+        let addr = self.get_operand_address(&op_code.mode);
+        let data = self.mem_read(addr);
+
+        if self.register_y >= data {
+            self.status.set_carry();
+        } else if self.register_y == data {
+            self.status.set_zero();
+        }
+
+        if ((self.register_y - data) >> 1 & 1) == 1 {
+            self.status.set_negative();
+        }
     }
 
     fn dec(&mut self, op_code: &OpCode) -> u8 {
@@ -573,7 +607,7 @@ impl CPU {
     }
 
     fn tsx(&mut self) {
-        todo!();
+        self.register_x = self.stack.ptr() as u8;
     }
 
     fn txa(&mut self) {
@@ -582,7 +616,7 @@ impl CPU {
     }
 
     fn txs(&mut self) {
-        todo!();
+        self.stack.set_ptr(self.register_x);
     }
 
     fn tya(&mut self) {
@@ -886,5 +920,25 @@ mod test {
         assert_eq!(cpu.register_x, 0);
         assert_eq!(cpu.register_y, 0);
         assert_eq!(cpu.program_counter, 32768);
+    }
+
+    #[test]
+    fn test_status_flags() {
+        let mut cpu = CPU::new();
+        cpu.sec();
+        assert_eq!(cpu.status.carry(), 1);
+        cpu.sed();
+        assert_eq!(cpu.status.decimal(), 1);
+        cpu.sei();
+        assert_eq!(cpu.status.interrupt(), 1);
+
+        cpu.clc();
+        assert_eq!(cpu.status.carry(), 0);
+        cpu.cld();
+        assert_eq!(cpu.status.decimal(), 0);
+        cpu.cli();
+        assert_eq!(cpu.status.interrupt(), 0);
+        cpu.clv();
+        assert_eq!(cpu.status.overflow(), 0);
     }
 }
