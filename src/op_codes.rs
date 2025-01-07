@@ -60,6 +60,7 @@ lazy_static! {
         OpCode::new(0x5D, "EOR", 3, 4, AddressingMode::Absolute_X), //cycles + 1 if page crossed
         OpCode::new(0xFE, "INC", 3, 7, AddressingMode::Absolute_X),
         OpCode::new(0xBD, "LDA", 3, 4, AddressingMode::Absolute_X), //cycles + 1 if page crossed
+        OpCode::new(0x5E, "LSR", 3, 7, AddressingMode::Absolute_X), //cycles + 1 if page crossed
         OpCode::new(0x1D, "ORA", 3, 4, AddressingMode::Absolute_X), //cycles + 1 if page crossed
         OpCode::new(0x3E, "ROL", 3, 7, AddressingMode::Absolute_X),
         OpCode::new(0x7E, "ROR", 3, 7, AddressingMode::Absolute_X),
@@ -73,7 +74,6 @@ lazy_static! {
         OpCode::new(0xB9, "LDA", 3, 4, AddressingMode::Absolute_Y), //cycles + 1 if page crossed
         OpCode::new(0xBE, "LDX", 3, 4, AddressingMode::Absolute_Y), //cycles + 1 if page crossed
         OpCode::new(0xBC, "LDY", 3, 4, AddressingMode::Absolute_Y), //cycles + 1 if page crossed
-        OpCode::new(0x5E, "LSR", 3, 7, AddressingMode::Absolute_Y), //cycles + 1 if page crossed
         OpCode::new(0x19, "ORA", 3, 4, AddressingMode::Absolute_Y), //cycles + 1 if page crossed
         OpCode::new(0xF9, "SBC", 3, 4, AddressingMode::Absolute_Y), //cycles + 1 if page crossed
         OpCode::new(0x99, "STA", 3, 5, AddressingMode::Absolute_Y),
@@ -138,6 +138,7 @@ lazy_static! {
         OpCode::new(0x55, "EOR", 2, 4, AddressingMode::ZeroPage_X),
         OpCode::new(0xF6, "INC", 2, 6, AddressingMode::ZeroPage_X),
         OpCode::new(0xB5, "LDA", 2, 4, AddressingMode::ZeroPage_X),
+        OpCode::new(0x56, "LSR", 2, 5, AddressingMode::ZeroPage_X),
         OpCode::new(0x15, "ORA", 2, 4, AddressingMode::ZeroPage_X),
         OpCode::new(0x36, "ROL", 2, 6, AddressingMode::ZeroPage_X),
         OpCode::new(0x76, "ROR", 2, 6, AddressingMode::ZeroPage_X),
