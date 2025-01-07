@@ -317,7 +317,7 @@ impl CPU {
     fn handle_accumulator_asl(&mut self, op_code: &OpCode) -> u8 {
         let mut data = self.register_a;
 
-        if data >> 7 == 1 {
+        if (data >> 7 & 1) == 1 {
             self.status.set_carry()
         } else {
             self.status.clear_carry()
@@ -334,7 +334,7 @@ impl CPU {
         let addr = self.get_operand_address(&op_code.mode);
         let mut data = self.mem_read(addr);
 
-        if data >> 7 == 1 {
+        if (data >> 7 & 1) == 1 {
             self.status.set_carry()
         } else {
             self.status.clear_carry()
@@ -571,8 +571,52 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_y);
     }
 
-    fn lsr(&mut self, op_code: &OpCode) {
-        todo!();
+    fn lsr(&mut self, op_code: &OpCode) -> u8 {
+        let data;
+        match op_code.code {
+            0x4A => {
+                data = self.handle_accumulator_lsr(op_code);
+            }
+            _ => {
+                data = self.handle_non_accumulator_lsr(op_code);
+            }
+        }
+        self.update_zero_and_negative_flags(data);
+
+        return data;
+    }
+
+    fn handle_accumulator_lsr(&mut self, op_code: &OpCode) -> u8 {
+        let mut data = self.register_a;
+
+        if (data >> 0 & 1) == 1 {
+            self.status.set_carry()
+        } else {
+            self.status.clear_carry()
+        }
+
+        data = data >> 1; // shift right 1 bit
+
+        self.register_a = data;
+
+        return data;
+    }
+
+    fn handle_non_accumulator_lsr(&mut self, op_code: &OpCode) -> u8 {
+        let addr = self.get_operand_address(&op_code.mode);
+        let mut data = self.mem_read(addr);
+
+        if (data >> 0 & 1) == 1 {
+            self.status.set_carry()
+        } else {
+            self.status.clear_carry()
+        }
+
+        data = data >> 1; // shift right 1 bit
+
+        self.mem_write(addr, data);
+
+        return data;
     }
 
     fn nop(&mut self) {}
