@@ -19,7 +19,7 @@ pub enum AddressingMode {
     Indirect,
     Indirect_X,
     Indirect_Y,
-    NoneAddressing,
+    NoneAddressing, //TODO consider splitting Accumulator mode out of this
 }
 
 trait Mem {
@@ -299,8 +299,52 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_a);
     }
 
-    fn asl(&mut self, op_code: &OpCode) {
-        todo!();
+    fn asl(&mut self, op_code: &OpCode) -> u8 {
+        let data;
+        match op_code.code {
+            0x0A => {
+                data = self.handle_accumulator_asl(op_code);
+            }
+            _ => {
+                data = self.handle_non_accumulator_asl(op_code);
+            }
+        }
+        self.update_zero_and_negative_flags(data);
+
+        return data;
+    }
+
+    fn handle_accumulator_asl(&mut self, op_code: &OpCode) -> u8 {
+        let mut data = self.register_a;
+
+        if data >> 7 == 1 {
+            self.status.set_carry()
+        } else {
+            self.status.clear_carry()
+        }
+
+        data = data << 1; // shift left 1 bit
+
+        self.register_a = data;
+
+        return data;
+    }
+
+    fn handle_non_accumulator_asl(&mut self, op_code: &OpCode) -> u8 {
+        let addr = self.get_operand_address(&op_code.mode);
+        let mut data = self.mem_read(addr);
+
+        if data >> 7 == 1 {
+            self.status.set_carry()
+        } else {
+            self.status.clear_carry()
+        }
+
+        data = data << 1; // shift left 1 bit
+
+        self.mem_write(addr, data);
+
+        return data;
     }
 
     fn bcc(&mut self, op_code: &OpCode) {
