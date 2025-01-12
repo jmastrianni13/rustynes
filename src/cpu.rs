@@ -644,12 +644,112 @@ impl CPU {
         todo!();
     }
 
-    fn rol(&mut self, op_code: &OpCode) {
-        todo!();
+    fn rol(&mut self, op_code: &OpCode) -> u8 {
+        let data;
+        match op_code.code {
+            0x2A => {
+                data = self.handle_accumulator_rol(op_code);
+            }
+            _ => {
+                data = self.handle_non_accumulator_rol(op_code);
+            }
+        }
+        self.update_zero_and_negative_flags(data);
+
+        return data;
     }
 
-    fn ror(&mut self, op_code: &OpCode) {
-        todo!();
+    fn handle_accumulator_rol(&mut self, op_code: &OpCode) -> u8 {
+        let mut data = self.register_a;
+        let old_carry = self.status.carry();
+
+        if (data >> 0 & 1) == 1 {
+            self.status.set_carry()
+        } else {
+            self.status.clear_carry()
+        }
+
+        data = data << 1 | old_carry;
+
+        self.register_a = data;
+
+        return data;
+    }
+
+    fn handle_non_accumulator_rol(&mut self, op_code: &OpCode) -> u8 {
+        let addr = self.get_operand_address(&op_code.mode);
+        let mut data = self.mem_read(addr);
+        let old_carry = self.status.carry();
+
+        if (data >> 0 & 1) == 1 {
+            self.status.set_carry()
+        } else {
+            self.status.clear_carry()
+        }
+
+        data = data << 1 | old_carry;
+
+        self.mem_write(addr, data);
+
+        return data;
+    }
+
+    fn ror(&mut self, op_code: &OpCode) -> u8 {
+        let data;
+        match op_code.code {
+            0x2A => {
+                data = self.handle_accumulator_ror(op_code);
+            }
+            _ => {
+                data = self.handle_non_accumulator_ror(op_code);
+            }
+        }
+        self.update_zero_and_negative_flags(data);
+
+        return data;
+    }
+
+    fn handle_accumulator_ror(&mut self, op_code: &OpCode) -> u8 {
+        let mut data = self.register_a;
+        let old_carry = self.status.carry();
+
+        if (data >> 7 & 1) == 1 {
+            self.status.set_carry()
+        } else {
+            self.status.clear_carry()
+        }
+
+        data = data >> 1;
+
+        if old_carry == 1 {
+            data = data | 0b10000000;
+        }
+
+        self.register_a = data;
+
+        return data;
+    }
+
+    fn handle_non_accumulator_ror(&mut self, op_code: &OpCode) -> u8 {
+        let addr = self.get_operand_address(&op_code.mode);
+        let mut data = self.mem_read(addr);
+        let old_carry = self.status.carry();
+
+        if (data >> 7 & 1) == 1 {
+            self.status.set_carry()
+        } else {
+            self.status.clear_carry()
+        }
+
+        data = data >> 1;
+
+        if old_carry == 1 {
+            data = data | 0b10000000;
+        }
+
+        self.mem_write(addr, data);
+
+        return data;
     }
 
     fn rti(&mut self) {
