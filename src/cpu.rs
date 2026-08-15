@@ -1,3 +1,4 @@
+#![allow(arithmetic_overflow)]
 use crate::op_codes::{OpCode, NMOS_6502_OPCODES_MAP};
 use crate::processor::Processor;
 use crate::stack::Stack;
@@ -293,12 +294,10 @@ impl CPU {
         let data = self.mem_read(addr);
         let sum = self.register_a as u16 + data as u16 + self.status.carry() as u16;
 
-        let carry = sum > 0xFF; // 0xff == 255
-
-        if carry {
-            self.status.set_carry();
-        } else {
+        if (0..=255).contains(&sum) {
             self.status.clear_carry();
+        } else {
+            self.status.set_carry();
         }
 
         if (!(self.register_a as u16 ^ data as u16) & (self.register_a as u16 ^ sum) & 0x0080) != 0
@@ -308,6 +307,8 @@ impl CPU {
             self.status.clear_overflow();
         }
 
+        // x & 0x0080 ==   0 for values   0 to 127 (inclusive)
+        // x & 0x0080 == 128 for values 128 to 255 (inclusive)
         if sum & 0x0080 != 0 {
             self.status.set_negative();
         } else {
@@ -318,6 +319,8 @@ impl CPU {
 
         if self.register_a == 0 {
             self.status.set_zero();
+        } else {
+            self.status.clear_zero();
         }
     }
 
@@ -791,7 +794,45 @@ impl CPU {
     }
 
     fn sbc(&mut self, op_code: &OpCode) {
-        todo!();
+        // on carry and overflow
+        // After the subtraction the carry flag is set if no borrow was required
+        // (the value in the accumulator was at least as large as the value in memory)
+        // or clear if a borrow was required (the value in the accumulator was smaller
+        // than the value in memory). As with addition, the state of the carry flag
+        // after a first subtraction can be used to "propogate" a ninth bit across
+        // multiple eight-bit subtractions.
+        // source: https://6502.org/forum/viewtopic.php?t=2944
+        let addr = self.get_operand_address(&op_code.mode);
+        let data = self.mem_read(addr);
+        let sub = self.register_a as u16 - data as u16 - (1 - self.status.carry()) as u16;
+
+        if (0..=255).contains(&sub) {
+            self.status.set_carry();
+        } else {
+            self.status.clear_carry();
+        }
+
+        if ((self.register_a as u16 ^ sub) & (self.register_a as u16 ^ data as u16) & 0x0080) != 0 {
+            self.status.set_overflow();
+        } else {
+            self.status.clear_overflow();
+        }
+
+        // x & 0x0080 ==   0 for values   0 to 127 (inclusive)
+        // x & 0x0080 == 128 for values 128 to 255 (inclusive)
+        if sub & 0x0080 != 0 {
+            self.status.set_negative();
+        } else {
+            self.status.clear_negative();
+        }
+
+        self.register_a = sub as u8;
+
+        if self.register_a == 0 {
+            self.status.set_zero();
+        } else {
+            self.status.clear_zero();
+        }
     }
 
     fn sec(&mut self) {
@@ -983,8 +1024,8 @@ mod test {
         cpu.load_and_run(vec![0xa9, 255, 0x69, 1]);
         // 255 + 1 = 256 overflows to 0
         //  -1 + 1 = 0
-        assert_eq!(cpu.register_a, 0); // signed
-        assert_eq!(cpu.register_a as i8, 0); // unsigned
+        assert_eq!(cpu.register_a, 0); // unsigned
+        assert_eq!(cpu.register_a as i8, 0); // signed
         assert_eq!(cpu.status.zero(), 1); // because result is 0
         assert_eq!(cpu.status.negative(), 0); // because result is not in the range [-128, 0)
         assert_eq!(cpu.status.carry(), 1); // because 256 is outside the range [0, 255]
@@ -994,8 +1035,8 @@ mod test {
         cpu.load_and_run(vec![0xa9, 1, 0x69, 1]);
         //  1 + 1 = 2
         //  1 + 1 = 2
-        assert_eq!(cpu.register_a, 2); // signed
-        assert_eq!(cpu.register_a as i8, 2); // unsigned
+        assert_eq!(cpu.register_a, 2); // unsigned
+        assert_eq!(cpu.register_a as i8, 2); // signed
         assert_eq!(cpu.status.zero(), 0); // because result is not 0
         assert_eq!(cpu.status.negative(), 0); // because result is not in the range [-128, 0)
         assert_eq!(cpu.status.carry(), 0); // because 2 is inside the range [0, 255]
@@ -1005,8 +1046,8 @@ mod test {
         cpu.load_and_run(vec![0xa9, 75, 0x69, 75]);
         //  75 + 75 = 150
         //  75 + 75 = 150 overflows to -106
-        assert_eq!(cpu.register_a, 150); // signed
-        assert_eq!(cpu.register_a as i8, -106); // unsigned
+        assert_eq!(cpu.register_a, 150); // unsigned
+        assert_eq!(cpu.register_a as i8, -106); // signed
         assert_eq!(cpu.status.zero(), 0); // because result is not 0
         assert_eq!(cpu.status.negative(), 1); // because result is in the range [-128, 0)
         assert_eq!(cpu.status.carry(), 0); // because 150 is inside the range [0, 255]
@@ -1016,12 +1057,106 @@ mod test {
         cpu.load_and_run(vec![0xa9, 250, 0x69, 128]);
         //  250 +  128 =  378 overflows to 122
         //   -6 + -128 = -132 overflows to 122
-        assert_eq!(cpu.register_a, 122); // signed
-        assert_eq!(cpu.register_a as i8, 122); // unsigned
+        assert_eq!(cpu.register_a, 122); // unsigned
+        assert_eq!(cpu.register_a as i8, 122); // signed
         assert_eq!(cpu.status.zero(), 0); // because result is not 0
         assert_eq!(cpu.status.negative(), 0); // because result is in the range [-128, 0)
         assert_eq!(cpu.status.carry(), 1); // because 500 is inside the range [0, 255]
         assert_eq!(cpu.status.overflow(), 1); // because -12 is in the range [-128, 127]
+    }
+
+    #[test]
+    fn test_sbc_immediate() {
+        // NOTE: setting carry bit for all tests for now
+        // see: https://6502.org/forum/viewtopic.php?t=18
+
+        // zero, no negative, no carry, no overflow
+        // 0 - 0 = 0
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x38, 0xa9, 0x00, 0xE9, 0x00]);
+        assert_eq!(cpu.register_a, 0x00);
+        assert_eq!(cpu.status.zero(), 1);
+        assert_eq!(cpu.status.negative(), 0);
+        assert_eq!(cpu.status.carry(), 1);
+        assert_eq!(cpu.status.overflow(), 0);
+
+        // zero, no negative, no carry, no overflow
+        // 1 - 1 = 0
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x38, 0xa9, 0x01, 0xE9, 0x01]);
+        assert_eq!(cpu.register_a, 0x00);
+        assert_eq!(cpu.status.zero(), 1);
+        assert_eq!(cpu.status.negative(), 0);
+        assert_eq!(cpu.status.carry(), 1);
+        assert_eq!(cpu.status.overflow(), 0);
+
+        // no zero, no carry, negative, no overflow
+        // 1 - 2 = 255 (-1)
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x38, 0xa9, 0x01, 0xE9, 0x02]);
+        assert_eq!(cpu.register_a, 0xFF);
+        assert_eq!(cpu.status.zero(), 0);
+        assert_eq!(cpu.status.negative(), 1);
+        assert_eq!(cpu.status.carry(), 0);
+        assert_eq!(cpu.status.overflow(), 0);
+
+        // no zero, no negative, carry, overflow
+        // 128 - 1 = 127
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x38, 0xa9, 0x80, 0xE9, 0x01]);
+        assert_eq!(cpu.register_a, 0x7F);
+        assert_eq!(cpu.status.zero(), 0);
+        assert_eq!(cpu.status.negative(), 0);
+        assert_eq!(cpu.status.carry(), 1);
+        assert_eq!(cpu.status.overflow(), 1);
+
+        // zero, no negative, no carry, no overflow
+        // 0 - 255 = 1 (-255)
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x38, 0xa9, 0x00, 0xE9, 0xFF]);
+        assert_eq!(cpu.register_a, 0x01);
+        assert_eq!(cpu.status.zero(), 0);
+        assert_eq!(cpu.status.negative(), 0);
+        assert_eq!(cpu.status.carry(), 0);
+        assert_eq!(cpu.status.overflow(), 0);
+
+        // no zero, no negative, carry, overflow
+        // 192 - 192 = 0
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x38, 0xa9, 0xC0, 0xE9, 0xC0]);
+        assert_eq!(cpu.register_a, 0x00);
+        assert_eq!(cpu.status.zero(), 1);
+        assert_eq!(cpu.status.negative(), 0);
+        assert_eq!(cpu.status.carry(), 1);
+        assert_eq!(cpu.status.overflow(), 0);
+
+        // use numeric integers
+        // unsighed arithmetic
+        // signed arithmetic
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x38, 0xa9, 255, 0xE9, 128]);
+        // 255 -  128 = 127
+        //  -1 - -128 = 127
+        assert_eq!(cpu.register_a, 0x7F); // unsigned
+        assert_eq!(cpu.register_a as i8, 0x7F); // signed
+        assert_eq!(cpu.status.zero(), 0);
+        assert_eq!(cpu.status.negative(), 0);
+        assert_eq!(cpu.status.carry(), 1);
+        assert_eq!(cpu.status.overflow(), 0);
+
+        // use numeric integers
+        // unsighed arithmetic
+        // signed arithmetic
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x38, 0xa9, 2, 0xE9, 128]);
+        //  2 - 128  = -126
+        //  2 - -128 =  130
+        assert_eq!(cpu.register_a, 130); // unsigned
+        assert_eq!(cpu.register_a as i8, -126); // signed
+        assert_eq!(cpu.status.zero(), 0);
+        assert_eq!(cpu.status.negative(), 1);
+        assert_eq!(cpu.status.carry(), 0);
+        assert_eq!(cpu.status.overflow(), 1);
     }
 
     #[test]
