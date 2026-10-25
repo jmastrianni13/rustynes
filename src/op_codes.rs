@@ -33,6 +33,7 @@ lazy_static! {
         OpCode::new(0x6D, "ADC", 3, 4, AddressingMode::Absolute),
         OpCode::new(0x2D, "AND", 3, 4, AddressingMode::Absolute),
         OpCode::new(0x0E, "ASL", 3, 6, AddressingMode::Absolute),
+        OpCode::new(0x2C, "BIT", 3, 4, AddressingMode::Absolute),
         OpCode::new(0xCD, "CMP", 3, 4, AddressingMode::Absolute),
         OpCode::new(0xEC, "CPX", 3, 4, AddressingMode::Absolute),
         OpCode::new(0xCC, "CPY", 3, 4, AddressingMode::Absolute),
@@ -154,7 +155,6 @@ lazy_static! {
         OpCode::new(0x90, "BCC", 2, 2, AddressingMode::NoneAddressing),//cycles + 1 if branch succeeds, +2 if to a new page
         OpCode::new(0xB0, "BCS", 2, 2, AddressingMode::NoneAddressing),//cycles + 1 if branch succeeds, +2 if to a new page
         OpCode::new(0xF0, "BEQ", 2, 2, AddressingMode::NoneAddressing),//cycles + 1 if branch succeeds, +2 if to a new page
-        OpCode::new(0x2C, "BIT", 3, 4, AddressingMode::NoneAddressing),
         OpCode::new(0x30, "BMI", 2, 2, AddressingMode::NoneAddressing),//cycles + 1 if branch succeeds, +2 if to a new page
         OpCode::new(0xD0, "BNE", 2, 2, AddressingMode::NoneAddressing),//cycles + 1 if branch succeeds, +2 if to a new page
         OpCode::new(0x10, "BPL", 2, 2, AddressingMode::NoneAddressing),//cycles + 1 if branch succeeds, +2 if to a new page
