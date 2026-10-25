@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 #![allow(arithmetic_overflow)]
 use crate::op_codes::{OpCode, NMOS_6502_OPCODES_MAP};
 use crate::processor::Processor;
@@ -36,6 +37,9 @@ trait Mem {
     }
 
     fn mem_write_u16(&mut self, pos: u16, data: u16) {
+        // self.mem_write_u16(0xFFFC, 0x8000);
+        // starting with data as 16 bits
+        // split between hi (upper 8 bits) and low (lower 8 bits)
         let hi = (data >> 8) as u8; // remove the lower 8 bits
         let lo = (data & 0xff) as u8; // 0xff == 255, or 0000000011111111 so only lower 8 bits are
                                       // kept
@@ -69,6 +73,7 @@ impl CPU {
     pub fn new() -> Self {
         let status = Processor::new();
         let stack = Stack::new(STACK_BOTTOM, STACK_TOP);
+
         CPU {
             register_a: 0,
             register_x: 0,
@@ -81,13 +86,36 @@ impl CPU {
     }
 
     pub fn run(&mut self) {
+        println!(
+            "\nRUN|PC={:#06x}|X={}|Z={}|{:#04X?}\n",
+            (self.program_counter - 32768) as u16,
+            self.register_x,
+            self.status.zero(),
+            &self.memory[0x8000..0x8010]
+        );
+        println!("> {:#04X}", self.mem_read(self.program_counter));
         loop {
             let code = self.mem_read(self.program_counter);
-            self.program_counter += 1;
 
             let op_code = NMOS_6502_OPCODES_MAP
                 .get(&code)
-                .expect("code not recognized"); // TODO: get rid of unwrap
+                .expect(&format!("code not recognized: {}", &code)); // TODO: get rid of unwrap
+                                                                     //
+            self.program_counter += 1;
+
+            println!("NV1BDIZC");
+            println!("{:b}", self.status.flags);
+            println!(
+                "{:#04x}|{}|{}|PC={:#06x}|NEXT={:#04x}|X={}|Z={}|{:?}",
+                op_code.code,
+                op_code.mnemonic,
+                op_code.len,
+                (self.program_counter) as u16,
+                self.mem_read(self.program_counter),
+                self.register_x,
+                self.status.zero(),
+                &self.memory[0..5]
+            );
 
             match op_code.mnemonic {
                 "ADC" => {
@@ -261,6 +289,7 @@ impl CPU {
                 _ => panic!(),
             }
             self.advance_program_counter(op_code.len);
+            //println!("{:#04x}|{}|{}|PC={:#06x}|NEXT={:#04x}|X={}|Z={}|{:?}", op_code.code, op_code.mnemonic, op_code.len, (self.program_counter) as u16, self.mem_read(self.program_counter), self.register_x, self.status.zero(), &self.memory[0..5]);
         }
     }
 
@@ -280,13 +309,64 @@ impl CPU {
         self.run();
     }
 
+    pub fn load_and_print(&mut self, program: Vec<u8>) {
+        let program_len = program.len();
+        self.load(program);
+        self.reset();
+
+        for (loc, op) in (&self.memory[0x8000..(0x8000 + program_len)])
+            .into_iter()
+            .enumerate()
+        {
+            println!("{:#04x}, {:#04x}", loc + self.program_counter as usize, op);
+        }
+
+        // println!("{:#?}", &self.memory[0x8000..(0x8000 + program_len)]);
+        println!("program counter: {:#04x}", self.program_counter);
+
+        self.run();
+
+        // println!("{:#?}", &self.memory[0x8000..(0x8000 + program_len)]);
+        println!("program counter: {:#04x}", self.program_counter);
+    }
+
     pub fn load(&mut self, program: Vec<u8>) {
+        // 0x8000 == 32768
+        // 0xFFFC == 65532
         self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
         self.mem_write_u16(0xFFFC, 0x8000);
     }
 
     fn advance_program_counter(&mut self, op_code_len: u8) {
+        // -1 to account for auto increment
+        // prior to executing the next instruction
         self.program_counter += (op_code_len - 1) as u16;
+    }
+
+    fn update_program_counter(&mut self, offset: i8) {
+        let updated_pc: i16 = self.program_counter as i16 + offset as i16;
+        self.program_counter += updated_pc as u16;
+    }
+
+    fn branch(&mut self, op_code: &OpCode) {
+        println!("program_counter: {:#06x}", self.program_counter);
+        let offset = self.mem_read(self.program_counter) as i8;
+        println!("offset: {}", offset);
+
+        let new_addr;
+
+        if offset < 0 {
+            new_addr = self
+                .program_counter
+                .wrapping_add(1)
+                .wrapping_add(offset as u16);
+        } else {
+            new_addr = self.program_counter.wrapping_add(offset as u16);
+        }
+
+        self.program_counter = new_addr;
+
+        println!("program_counter: {:#06x}", self.program_counter);
     }
 
     fn adc(&mut self, op_code: &OpCode) {
@@ -380,16 +460,21 @@ impl CPU {
     }
 
     fn bcc(&mut self, op_code: &OpCode) {
-        if !(self.status.carry() == 1) {}
-        todo!();
+        if self.status.carry() == 0 {
+            self.branch(op_code);
+        }
     }
 
     fn bcs(&mut self, op_code: &OpCode) {
-        todo!();
+        if self.status.carry() == 1 {
+            self.branch(op_code);
+        }
     }
 
     fn beq(&mut self, op_code: &OpCode) {
-        todo!();
+        if self.status.zero() == 1 {
+            self.branch(op_code);
+        }
     }
 
     fn bit(&mut self, op_code: &OpCode) {
@@ -397,25 +482,35 @@ impl CPU {
     }
 
     fn bmi(&mut self, op_code: &OpCode) {
-        todo!();
+        if self.status.negative() == 1 {
+            self.branch(op_code);
+        }
     }
 
     fn bne(&mut self, op_code: &OpCode) {
-        todo!();
+        if self.status.zero() == 0 {
+            self.branch(op_code);
+        }
     }
 
     fn bpl(&mut self, op_code: &OpCode) {
-        todo!();
+        if self.status.negative() == 0 {
+            self.branch(op_code);
+        }
     }
 
     //fn brk(&mut self, _op_code: &OpCode) { no instructions to carry out
 
     fn bvc(&mut self, op_code: &OpCode) {
-        todo!();
+        if self.status.overflow() == 0 {
+            self.branch(op_code);
+        }
     }
 
     fn bvs(&mut self, op_code: &OpCode) {
-        todo!();
+        if self.status.overflow() == 1 {
+            self.branch(op_code);
+        }
     }
 
     fn clc(&mut self) {
@@ -971,6 +1066,175 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_pc() {
+        let mut cpu = CPU::new();
+        assert_eq!(cpu.program_counter, 0);
+        cpu.load_and_run(vec![
+            0xA9, 0x01, 0x8D, 0x00, 0x02, 0xA9, 0x02, 0x8D, 0x01, 0x02, 0xA9, 0x03, 0x8D, 0x02,
+            0x02,
+        ]);
+        assert_eq!(cpu.program_counter, 0x8010);
+        cpu.reset();
+        assert_eq!(cpu.program_counter, 0x8000);
+    }
+
+    #[test]
+    fn test_pc_reset() {
+        let mut cpu = CPU::new();
+        assert_eq!(cpu.program_counter, 0);
+        cpu.reset();
+        assert_eq!(cpu.program_counter, 0);
+    }
+
+    #[test]
+    fn test_bcc() {
+        let mut cpu = CPU::new();
+        // LDA 0xfe
+        // STA 0x00
+        // ADC 0x01
+        // BCC 0xFA
+        // STA 0x01
+        cpu.load_and_run(vec![
+            0xA9, 0xfe, 0x85, 0x00, 0x69, 0x05, 0x90, 0xFB, 0x85, 0x01,
+        ]);
+        assert_eq!(cpu.memory[0], 254);
+        assert_eq!(cpu.memory[1], 3);
+
+        let mut cpu = CPU::new();
+        // LDA 0xfe
+        // STA 0x00
+        // BCC 0x01
+        // ADC 0x05
+        // STA 0x01
+        cpu.load_and_run(vec![
+            0xA9, 0xfe, 0x85, 0x00, 0x90, 0x02, 0x69, 0x05, 0x85, 0x01,
+        ]);
+        assert_eq!(cpu.memory[0], 254);
+        assert_eq!(cpu.memory[1], 254);
+    }
+
+    #[test]
+    fn test_bcs() {
+        let mut cpu = CPU::new();
+        // LDA 0xfe
+        // STA 0x00
+        // ADC 0x01
+        // BCS 0xFA
+        // STX 0x01
+        cpu.load_and_run(vec![
+            0xA9, 0xfe, 0x85, 0x00, 0x69, 0x02, 0xB0, 0xFA, 0x86, 0x01,
+        ]);
+        assert_eq!(cpu.memory[0], 254);
+        assert_eq!(cpu.memory[1], 0);
+
+        let mut cpu = CPU::new();
+        // LDA 0xfe
+        // STA 0x00
+        // BCS 0x01
+        // ADC 0x05
+        // STA 0x01
+        cpu.load_and_run(vec![
+            0xA9, 0xfe, 0x85, 0x00, 0xB0, 0x01, 0x69, 0x05, 0x85, 0x01,
+        ]);
+        assert_eq!(cpu.memory[0], 254);
+        assert_eq!(cpu.memory[1], 3);
+    }
+
+    #[test]
+    fn test_bmi() {
+        let mut cpu = CPU::new();
+        // LDA #$7f
+        // STA $00
+        // ADC #$01
+        // BMI $04
+        // STA $01
+        cpu.load_and_run(vec![
+            0xA9, 0x7f, 0x85, 0x00, 0x69, 0x01, 0x30, 0x04, 0x85, 0x01,
+        ]);
+        assert_eq!(cpu.memory[0], 127);
+        assert_eq!(cpu.memory[1], 0);
+
+        let mut cpu = CPU::new();
+        // LDA 0x01       0x02
+        // STA 0x00       0x04
+        // ADC #$01
+        // BMI advance    0x01
+        // ADC #$01
+        // STA 0x01       0x11
+        cpu.load_and_run(vec![
+            0xA9, 0x01, 0x85, 0x00, 0x69, 0x01, 0x30, 0x0A, 0x69, 0x01, 0x85, 0x01,
+        ]);
+        assert_eq!(cpu.memory[0], 1);
+        assert_eq!(cpu.memory[1], 3);
+    }
+
+    #[test]
+    fn test_bne() {
+        let mut cpu = CPU::new();
+        // LDX 0x06
+        // STX 0x00
+        // decrement:
+        // DEX
+        // CPX 0x02
+        // BNE decrement 0xFA
+        // STX 0x01
+        cpu.load_and_run(vec![
+            0xA2, 0x06, 0x86, 0x00, 0xCA, 0xE0, 0x02, 0xD0, 0xFA, 0x86, 0x01,
+        ]);
+        assert_eq!(cpu.memory[0], 6);
+        assert_eq!(cpu.memory[1], 2);
+
+        let mut cpu = CPU::new();
+        // LDX 0x02       0x02
+        // STX 0x00       0x04
+        // CPX 0x03       0x06
+        // BNE advance    0x01
+        // INX            0x09
+        // advance:
+        // STX 0x01       0x11
+        cpu.load_and_run(vec![
+            0xA2, 0x02, 0x86, 0x00, 0xE0, 0x03, 0xD0, 0x01, 0xE8, 0x86, 0x01,
+        ]);
+        assert_eq!(cpu.memory[0], 2);
+        assert_eq!(cpu.memory[1], 2);
+    }
+
+    #[test]
+    fn test_bpl() {
+        let mut cpu = CPU::new();
+        // LDA #$7f
+        // STA $00
+        // ADC #$01
+        // BPL $04
+        // STA $01
+        cpu.load_and_run(vec![
+            0xA9, 0x7f, 0x85, 0x00, 0x69, 0x01, 0x10, 0x04, 0x85, 0x01,
+        ]);
+        assert_eq!(cpu.memory[0], 127);
+        assert_eq!(cpu.memory[1], 128);
+
+        let mut cpu = CPU::new();
+        // LDA 0x01
+        // STA 0x00
+        // ADC #$01
+        // BPL 0x02
+        // ADC #$01
+        // STA 0x01
+        cpu.load_and_run(vec![
+            0xA9, 0x01, 0x85, 0x00, 0x69, 0x01, 0x10, 0x02, 0x69, 0x01, 0x85, 0x01,
+        ]);
+        assert_eq!(cpu.memory[0], 1);
+        assert_eq!(cpu.memory[1], 2);
+        assert_eq!(cpu.register_a, 2);
+    }
+
+    #[test]
+    fn test_bvc() {}
+
+    #[test]
+    fn test_bvs() {}
+
+    #[test]
     fn test_adc_immediate() {
         // no zero, no carry, no overflow
         let mut cpu = CPU::new();
@@ -1017,8 +1281,8 @@ mod test {
         assert_eq!(cpu.status.carry(), 1);
         assert_eq!(cpu.status.overflow(), 0);
 
-        // use numeric integers
-        // unsighed arithmetic
+        // use integers
+        // unsigned arithmetic
         // signed arithmetic
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 255, 0x69, 1]);
@@ -1130,8 +1394,8 @@ mod test {
         assert_eq!(cpu.status.carry(), 1);
         assert_eq!(cpu.status.overflow(), 0);
 
-        // use numeric integers
-        // unsighed arithmetic
+        // use integers
+        // unsigned arithmetic
         // signed arithmetic
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0x38, 0xa9, 255, 0xE9, 128]);
@@ -1144,19 +1408,31 @@ mod test {
         assert_eq!(cpu.status.carry(), 1);
         assert_eq!(cpu.status.overflow(), 0);
 
-        // use numeric integers
-        // unsighed arithmetic
+        // unsigned arithmetic
         // signed arithmetic
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0x38, 0xa9, 2, 0xE9, 128]);
-        //  2 - 128  = -126
         //  2 - -128 =  130
+        //  2 -  128 = -126
         assert_eq!(cpu.register_a, 130); // unsigned
         assert_eq!(cpu.register_a as i8, -126); // signed
         assert_eq!(cpu.status.zero(), 0);
         assert_eq!(cpu.status.negative(), 1);
         assert_eq!(cpu.status.carry(), 0);
         assert_eq!(cpu.status.overflow(), 1);
+
+        // unsigned arithmetic
+        // signed arithmetic
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x38, 0xa9, 160, 0xE9, 190]);
+        //  160 - 190 =  226 (256 - 30)
+        //  -96 - -66 = -30
+        assert_eq!(cpu.register_a, 226); // unsigned
+        assert_eq!(cpu.register_a as i8, -30); // signed
+        assert_eq!(cpu.status.zero(), 0);
+        assert_eq!(cpu.status.negative(), 1);
+        assert_eq!(cpu.status.carry(), 0);
+        assert_eq!(cpu.status.overflow(), 0);
     }
 
     #[test]

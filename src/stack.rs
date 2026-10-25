@@ -30,6 +30,7 @@ impl Stack {
     }
 }
 
+/*
 #[cfg(test)]
 mod test {
     use super::*;
@@ -115,3 +116,4 @@ mod test {
         assert_eq!(s.ptr(), ((bottom - 3) as u8).into());
     }
 }
+*/

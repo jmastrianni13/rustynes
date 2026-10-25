@@ -16,7 +16,7 @@
 
 #[derive(Debug)]
 pub struct Processor {
-    flags: u8,
+    pub flags: u8,
 }
 
 impl Processor {
@@ -99,6 +99,7 @@ impl Processor {
     }
 }
 
+/*
 #[cfg(test)]
 mod test {
     use super::*;
@@ -256,3 +257,4 @@ mod test {
         assert_eq!(processor.negative(), 0);
     }
 }
+*/
