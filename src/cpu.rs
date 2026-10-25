@@ -478,7 +478,26 @@ impl CPU {
     }
 
     fn bit(&mut self, op_code: &OpCode) {
-        todo!();
+        let addr = self.get_operand_address(&op_code.mode);
+        let data = self.mem_read(addr);
+
+        if (data & self.register_a) == 0 {
+            self.status.set_zero();
+        } else {
+            self.status.clear_zero();
+        }
+
+        if (data >> 7) == 1 {
+            self.status.set_negative();
+        } else {
+            self.status.clear_negative();
+        }
+
+        if ((data >> 6) & 1) == 1 {
+            self.status.set_overflow();
+        } else {
+            self.status.clear_overflow();
+        }
     }
 
     fn bmi(&mut self, op_code: &OpCode) {
